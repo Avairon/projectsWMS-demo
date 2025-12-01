@@ -88,6 +88,14 @@ def init_database(force_recreate=False):
         with open(app.config['TASKS_DB'], 'w', encoding='utf-8') as f:
             json.dump(tasks, f, ensure_ascii=False, indent=2)
         print("Файл задач создан успешно")
+    
+    # Инициализация tokens.json
+    if not os.path.exists(app.config['TOKENS_DB']):
+        print("Создание файла токенов...")
+        tokens = []
+        with open(app.config['TOKENS_DB'], 'w', encoding='utf-8') as f:
+            json.dump(tokens, f, ensure_ascii=False, indent=2)
+        print("Файл токенов создан успешно")
 
 # Загрузка данных из JSON файлов
 def load_data(file_path):
@@ -177,7 +185,13 @@ def register():
         username = request.form['username'].strip()
         password = request.form['password']
         name = request.form['name'].strip()
-        role = request.form['role']
+        token = request.form['token'].strip()
+        
+        # Проверка токена
+        token_info = validate_token(token)
+        if not token_info:
+            flash('Неверный или использованный токен')
+            return render_template('register.html', roles=get_available_roles())
         
         # Проверка на существование пользователя с таким именем
         users = load_data(app.config['USERS_DB'])
@@ -191,13 +205,26 @@ def register():
             "username": username,
             "password": generate_password_hash(password),
             "name": name,
-            "role": role,
+            "role": token_info['role'],
             "projects": []
         }
         
         # Добавление пользователя в базу
         users.append(new_user)
         save_data(app.config['USERS_DB'], users)
+        
+        # Если это исполнитель, добавляем его в команду проекта
+        if token_info['role'] == 'worker' and token_info['project_id']:
+            projects = load_data(app.config['PROJECTS_DB'])
+            for project in projects:
+                if project['id'] == token_info['project_id']:
+                    if new_user['id'] not in project['team']:
+                        project['team'].append(new_user['id'])
+                    break
+            save_data(app.config['PROJECTS_DB'], projects)
+        
+        # Отмечаем токен как использованный
+        mark_token_as_used(token)
         
         flash('Пользователь успешно зарегистрирован')
         
@@ -217,6 +244,96 @@ def get_available_roles():
         {'id': 'manager', 'name': 'Руководитель проекта'},
         {'id': 'worker', 'name': 'Исполнитель'}
     ]
+
+
+# Функции для работы с токенами
+def load_tokens():
+    """Загрузка токенов из файла"""
+    if not os.path.exists(app.config['TOKENS_DB']):
+        return []
+    with open(app.config['TOKENS_DB'], 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+
+def save_tokens(tokens):
+    """Сохранение токенов в файл"""
+    with open(app.config['TOKENS_DB'], 'w', encoding='utf-8') as f:
+        json.dump(tokens, f, ensure_ascii=False, indent=2)
+
+
+def generate_token(role, project_id=None):
+    """Генерация нового токена"""
+    token = {
+        'id': str(uuid.uuid4()),
+        'role': role,
+        'project_id': project_id,
+        'created_at': datetime.now().strftime("%d.%m.%Y %H:%M:%S"),
+        'used': False
+    }
+    tokens = load_tokens()
+    tokens.append(token)
+    save_tokens(tokens)
+    return token['id']
+
+
+def validate_token(token_id):
+    """Проверка валидности токена"""
+    tokens = load_tokens()
+    token = next((t for t in tokens if t['id'] == token_id), None)
+    if token and not token['used']:
+        return token
+    return None
+
+
+def mark_token_as_used(token_id):
+    """Отметка токена как использованного"""
+    tokens = load_tokens()
+    for token in tokens:
+        if token['id'] == token_id:
+            token['used'] = True
+            break
+    save_tokens(tokens)
+
+
+# Маршрут для генерации токенов
+@app.route('/generate_token', methods=['POST'])
+@login_required
+def generate_token_route():
+    """Генерация токена для регистрации пользователя"""
+    if current_user.role not in ['admin', 'manager']:
+        flash('У вас нет прав для генерации токенов')
+        return redirect(url_for('dashboard'))
+    
+    role = request.form.get('role')
+    project_id = request.form.get('project_id')
+    
+    # Проверяем, что роль допустима
+    if role not in ['admin', 'manager', 'worker']:
+        flash('Недопустимая роль для токена')
+        return redirect(url_for('dashboard'))
+    
+    # Если роль worker, проверяем, что проект указан
+    if role == 'worker' and not project_id:
+        flash('Для исполнителя необходимо указать проект')
+        return redirect(url_for('dashboard'))
+    
+    # Если пользователь не администратор, он может создавать только токены для исполнителей
+    if current_user.role == 'manager' and role != 'worker':
+        flash('Руководитель может генерировать токены только для исполнителей')
+        return redirect(url_for('dashboard'))
+    
+    # Если пользователь - руководитель, проверяем, что он имеет доступ к проекту
+    if current_user.role == 'manager' and project_id:
+        if not can_access_project(project_id):
+            flash('У вас нет доступа к указанному проекту')
+            return redirect(url_for('dashboard'))
+    
+    # Генерируем токен
+    token_id = generate_token(role, project_id)
+    
+    flash(f'Токен успешно сгенерирован: {token_id}')
+    return redirect(url_for('dashboard'))
+
 
 # Главная страница - редирект на dashboard
 @app.route('/')

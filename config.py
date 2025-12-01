@@ -11,3 +11,4 @@ class Config:
     USERS_DB = os.path.join(DATABASE_PATH, 'users.json')
     PROJECTS_DB = os.path.join(DATABASE_PATH, 'projects.json')
     TASKS_DB = os.path.join(DATABASE_PATH, 'tasks.json')
+    TOKENS_DB = os.path.join(DATABASE_PATH, 'tokens.json')

@@ -29,12 +29,9 @@
         </div>
         
         <div class="form-group">
-            <label for="role">Роль:</label>
-            <select id="role" name="role" required>
-                {% for role in roles %}
-                    <option value="{{ role.id }}">{{ role.name }}</option>
-                {% endfor %}
-            </select>
+            <label for="token">Токен регистрации:</label>
+            <input type="text" id="token" name="token" required>
+            <small>Введите токен, полученный от администратора или руководителя проекта</small>
         </div>
         
         <div class="form-actions">
