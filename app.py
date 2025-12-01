@@ -1,3 +1,5 @@
+# Все либы(flask + зависимости)
+
 from flask import Flask, render_template, redirect, url_for, request, flash, jsonify
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import json
@@ -44,14 +46,6 @@ def init_database(force_recreate=False):
                 "name": "Администратор системы",
                 "role": "admin",
                 "projects": []
-            },
-            {
-                "id": "2",
-                "username": "chervyakova",
-                "password": generate_password_hash("password", method='pbkdf2:sha256', salt_length=8),
-                "name": "Червякова Т.Н.",
-                "role": "manager",
-                "projects": ["1", "14", "15", "17", "22", "23", "27", "29"]
             }
         ]
         with open(app.config['USERS_DB'], 'w', encoding='utf-8') as f:
@@ -62,20 +56,20 @@ def init_database(force_recreate=False):
     if not os.path.exists(app.config['PROJECTS_DB']):
         print("Создание файла проектов...")
         projects = [
-            {
-                "id": "1",
-                "name": "Открытие 2х новых образовательных программ.",
-                "status": "в работе",
-                "start_date": datetime.now().strftime("%d.%m.%Y"),
-                "end_date": (datetime.now().replace(year=datetime.now().year + 1)).strftime("%d.%m.%Y"),
-                "last_activity": datetime.now().strftime("%d.%m.%Y"),
-                "direction": "Образовательные программы",
-                "description": "Открытие 2х специальностей по направлению ИТ",
-                "expected_result": "Подготовлены учебные документы",
-                "supervisor_id": "2",
-                "manager_id": "2",
-                "team": []
-            }
+            # {
+            #     "id": "1",
+            #     "name": "Открытие 2х новых образовательных программ.",
+            #     "status": "в работе",
+            #     "start_date": datetime.now().strftime("%d.%m.%Y"),
+            #     "end_date": (datetime.now().replace(year=datetime.now().year + 1)).strftime("%d.%m.%Y"),
+            #     "last_activity": datetime.now().strftime("%d.%m.%Y"),
+            #     "direction": "Образовательные программы",
+            #     "description": "Открытие 2х специальностей по направлению ИТ",
+            #     "expected_result": "Подготовлены учебные документы",
+            #     "supervisor_id": "2",
+            #     "manager_id": "2",
+            #     "team": []
+            # }
         ]
         with open(app.config['PROJECTS_DB'], 'w', encoding='utf-8') as f:
             json.dump(projects, f, ensure_ascii=False, indent=2)
