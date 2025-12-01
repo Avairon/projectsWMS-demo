@@ -212,8 +212,10 @@ def register():
             projects = load_data(app.config['PROJECTS_DB'])
             for project in projects:
                 if project['id'] == token_info['project_id']:
-                    if new_user['id'] not in project['team']:
-                        project['team'].append(new_user['id'])
+                    team = project.get('team', [])
+                    if new_user['id'] not in team:
+                        team.append(new_user['id'])
+                        project['team'] = team
                     break
             save_data(app.config['PROJECTS_DB'], projects)
         
@@ -774,6 +776,7 @@ def edit_project(project_id):
         return redirect(url_for('project_detail', project_id=project_id))
     
     return render_template('edit_project.html', project=project, users=users, managers=managers)
+
 
 if __name__ == '__main__':
     init_database()
