@@ -24,6 +24,38 @@
     </div>
 
     <div class="section">
+        <h3>Генерация токенов для регистрации</h3>
+        {% if current_user.role in ['admin', 'manager'] %}
+        <form method="POST" action="{{ url_for('generate_token_route') }}" class="token-form">
+            <div class="form-group">
+                <label for="role">Роль пользователя:</label>
+                <select id="role" name="role" required>
+                    {% if current_user.role == 'admin' %}
+                    <option value="admin">Администратор</option>
+                    <option value="manager">Руководитель проекта</option>
+                    {% endif %}
+                    <option value="worker">Исполнитель</option>
+                </select>
+            </div>
+            
+            <div class="form-group" id="project-select" style="display: none;">
+                <label for="project_id">Проект (для исполнителя):</label>
+                <select id="project_id" name="project_id">
+                    <option value="">Выберите проект</option>
+                    {% for project in projects %}
+                    <option value="{{ project.id }}">{{ project.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <button type="submit" class="btn">Сгенерировать токен</button>
+        </form>
+        {% else %}
+        <p>Только администраторы и руководители могут генерировать токены</p>
+        {% endif %}
+    </div>
+
+    <div class="section">
         <div class="actions-bar">
             {% if current_user.role in ['admin', 'manager'] %}
                 <a href="{{ url_for('create_project') }}" class="btn">+ Создать проект</a>
@@ -105,4 +137,28 @@
         {% endif %}
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const roleSelect = document.getElementById('role');
+    const projectSelect = document.getElementById('project-select');
+    
+    if (roleSelect && projectSelect) {
+        roleSelect.addEventListener('change', function() {
+            if (this.value === 'worker') {
+                projectSelect.style.display = 'block';
+            } else {
+                projectSelect.style.display = 'none';
+            }
+        });
+        
+        // Инициализируем состояние при загрузке страницы
+        if (roleSelect.value !== 'worker') {
+            projectSelect.style.display = 'none';
+        } else {
+            projectSelect.style.display = 'block';
+        }
+    }
+});
+</script>
 {% endblock %}
