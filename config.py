@@ -1,3 +1,4 @@
+# Настройка
 import os
 
 class Config:

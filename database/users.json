@@ -2,58 +2,9 @@
   {
     "id": "1",
     "username": "admin",
-    "password": "pbkdf2:sha256:1000000$383hFOHL$a3e479c85b8e63ea9ecb09f4eb1a802cba37fd922173fbd5e16d9613a84dd690",
+    "password": "pbkdf2:sha256:1000000$mfJ13oJG$80a9279c834bad3f2f626dabddba02aaa4c92549e4626dc5f97dd8603c1aecd2",
     "name": "Администратор системы",
     "role": "admin",
-    "projects": []
-  },
-  {
-    "id": "2",
-    "username": "chervyakova",
-    "password": "pbkdf2:sha256:1000000$F83YxEJM$b646ea1a3bf2e49783aadcdec48c14f4623a4ba7f1c02c739ef95c252e231987",
-    "name": "Червякова Т.Н.",
-    "role": "manager",
-    "projects": [
-      "1",
-      "14",
-      "15",
-      "17",
-      "22",
-      "23",
-      "27",
-      "29"
-    ]
-  },
-  {
-    "id": "cf650e5b",
-    "username": "lox",
-    "password": "scrypt:32768:8:1$i6sdTtuPQVrEqHoy$c1b6b05eb56cb9561c52b7469ea19fa9464b9342e92a3cf7818988a9ac855b3ebc17c07519b01b1cd3e0cdf8df5cfececaf8c682397afd42ff633efd539e90a5",
-    "name": "asdasdasdasd",
-    "role": "worker",
-    "projects": []
-  },
-  {
-    "id": "9235ea26",
-    "username": "bbb",
-    "password": "scrypt:32768:8:1$5Vzk8z4HQtuYqcqq$558002a92a5512e94d73c8b327dd99361ac3c059dda371fe24b28d8d002ff3e4d2896c2a7776b8d3779eebd649157acb3a510e7652a04a863d4b1b8c253cb140",
-    "name": "ausdyyukasgd",
-    "role": "manager",
-    "projects": []
-  },
-  {
-    "id": "14a6dfea",
-    "username": "ruk",
-    "password": "scrypt:32768:8:1$rcbarC0IoS6DHcgh$fa576738682790151b12bb65d5107fcdef31c2008c18fcc36a3d79acfabbc76d779de3695689f059c8dd83314dc64147ed7792a96109754a30cfb779e52efef8",
-    "name": "Ruk Rokovod",
-    "role": "manager",
-    "projects": []
-  },
-  {
-    "id": "b80bd68f",
-    "username": "balbes",
-    "password": "scrypt:32768:8:1$A7qpiyBYfLYTModP$9524dc7fc4cf5446a6182c607689805aacd7e0e842021398e0d959b02ff6e1117ef1b8fe604936159c7ce2901d8eaa8b05052865e9ee08bbd61fa58e5bc41d84",
-    "name": "balse",
-    "role": "worker",
     "projects": []
   }
 ]
