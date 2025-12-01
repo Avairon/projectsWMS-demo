@@ -744,7 +744,7 @@ def edit_project(project_id):
         return redirect(url_for('dashboard'))
     
     # Проверка прав на редактирование
-    if current_user.role not in ['admin'] and current_user.id != project.get('manager_id'):
+    if current_user.role not in ['admin'] and current_user.id != project['manager_id']:
         flash('У вас нет прав на редактирование этого проекта')
         return redirect(url_for('project_detail', project_id=project_id))
     
@@ -752,30 +752,17 @@ def edit_project(project_id):
     managers = [u for u in users if u['role'] in ['admin', 'manager']]
     
     if request.method == 'POST':
-        # Обновляем данные проекта, используя значения из формы или сохраняя текущие
-        project['name'] = request.form.get('name', project['name']).strip()
-        project['description'] = request.form.get('description', project['description']).strip()
-        project['direction'] = request.form.get('direction', project['direction']).strip()
-        project['expected_result'] = request.form.get('expected_result', project['expected_result']).strip()
-        
-        # Проверяем, есть ли даты в форме, иначе оставляем текущие значения
-        if 'start_date' in request.form:
-            project['start_date'] = request.form['start_date']
-        if 'end_date' in request.form:
-            project['end_date'] = request.form['end_date']
-        
+        # Обновляем данные проекта
+        project['name'] = request.form['name'].strip()
+        project['description'] = request.form['description'].strip()
+        project['direction'] = request.form['direction'].strip()
+        project['expected_result'] = request.form['expected_result'].strip()
+        # project['start_date'] = request.form.get('start_date', None)
+        project['end_date'] = request.form.get('end_date', None)
         project['status'] = request.form.get('status', 'в работе')
-        
-        # Проверяем, есть ли ID руководителей в форме, иначе оставляем текущие значения
-        if 'supervisor_id' in request.form:
-            project['supervisor_id'] = request.form['supervisor_id']
-        if 'manager_id' in request.form:
-            project['manager_id'] = request.form['manager_id']
-        
-        # Проверяем, есть ли список участников команды в форме, иначе оставляем текущий
-        if 'team_members' in request.form:
-            project['team'] = request.form.getlist('team_members')
-        
+        project['supervisor_id'] = request.form.get('supervisor_id', None)
+        project['manager_id'] = request.form.get('manager_id', None)
+        project['team'] = request.form.getlist('team_members')
         project['last_activity'] = datetime.now().strftime("%d.%m.%Y")
         
         # Сохраняем изменения
@@ -789,6 +776,7 @@ def edit_project(project_id):
         return redirect(url_for('project_detail', project_id=project_id))
     
     return render_template('edit_project.html', project=project, users=users, managers=managers)
+
 
 if __name__ == '__main__':
     init_database()
