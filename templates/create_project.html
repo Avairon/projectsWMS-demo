@@ -63,18 +63,6 @@
         </div>
         
         <div class="form-group">
-            <label>Команда проекта:</label>
-            <div class="team-members">
-                {% for user in users if user.role == 'worker' %}
-                <div class="team-member">
-                    <input type="checkbox" id="member_{{ user.id }}" name="team_members" value="{{ user.id }}">
-                    <label for="member_{{ user.id }}">{{ user.name }}</label>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-        
-        <div class="form-group">
             <label for="status">Статус:</label>
             <select id="status" name="status">
                 <option value="в работе" selected>В работе</option>

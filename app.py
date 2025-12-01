@@ -755,11 +755,11 @@ def edit_project(project_id):
         project['description'] = request.form['description'].strip()
         project['direction'] = request.form['direction'].strip()
         project['expected_result'] = request.form['expected_result'].strip()
-        project['start_date'] = request.form['start_date']
-        project['end_date'] = request.form['end_date']
+        # project['start_date'] = request.form.get('start_date', None)
+        project['end_date'] = request.form.get('end_date', None)
         project['status'] = request.form.get('status', 'в работе')
-        project['supervisor_id'] = request.form['supervisor_id']
-        project['manager_id'] = request.form['manager_id']
+        project['supervisor_id'] = request.form.get('supervisor_id', None)
+        project['manager_id'] = request.form.get('manager_id', None)
         project['team'] = request.form.getlist('team_members')
         project['last_activity'] = datetime.now().strftime("%d.%m.%Y")
         
