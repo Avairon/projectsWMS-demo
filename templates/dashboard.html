@@ -4,6 +4,25 @@
 <div class="dashboard">
     <h2>Панель управления</h2>
     
+    <!-- Отображение токена пользователя -->
+    <div class="user-token-info">
+        <h3>Ваш токен:</h3>
+        <p class="token-display">{{ user_token if user_token else 'Токен не назначен' }}</p>
+        <p class="token-role">Роль: 
+            {% if current_user.role == 'admin' %}
+                Администратор
+            {% elif current_user.role == 'manager' %}
+                Руководитель
+            {% elif current_user.role == 'supervisor' %}
+                Куратор
+            {% elif current_user.role == 'worker' %}
+                Исполнитель
+            {% else %}
+                Неизвестная роль
+            {% endif %}
+        </p>
+    </div>
+    
     <div class="stats-grid">
         <div class="stat-card">
             <h3>Всего проектов</h3>

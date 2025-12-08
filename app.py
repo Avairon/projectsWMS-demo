@@ -513,11 +513,15 @@ def dashboard():
         'completed_tasks': len([t for t in user_tasks if t['status'] == 'завершена'])
     }
     
+    # Получаем токен текущего пользователя
+    user_token = current_user.token
+
     return render_template('dashboard.html', 
                          projects=visible_projects, 
                          tasks=user_tasks, 
                          users=users, 
-                         stats=stats)
+                         stats=stats,
+                         user_token=user_token)
 
 # Админ-панель для управления пользователями
 @app.route('/admin/users')
