@@ -1,1 +1,4 @@
-(empty)
+```gitignore
+__pycache__/
+*.pyc
+```

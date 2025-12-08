@@ -336,6 +336,57 @@ button:active, .btn:active {
     font-size: 2rem;
 }
 
+.user-token-info {
+    background: white;
+    padding: 1.5rem;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow);
+    margin-bottom: 2rem;
+    border-left: 4px solid var(--primary-color);
+    position: relative;
+    overflow: hidden;
+}
+
+.user-token-info::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.05), transparent);
+    opacity: 1;
+}
+
+.user-token-info h3 {
+    margin: 0 0 0.8rem 0;
+    color: var(--secondary-color);
+    font-weight: 600;
+    font-size: 1.2rem;
+}
+
+.token-display {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--primary-color);
+    margin: 0.5rem 0;
+    letter-spacing: 1px;
+    font-family: 'Courier New', monospace;
+    background-color: var(--gray-100);
+    padding: 0.8rem;
+    border-radius: var(--border-radius);
+    display: inline-block;
+    min-width: 200px;
+    text-align: center;
+}
+
+.token-role {
+    margin: 0.8rem 0 0 0;
+    color: var(--gray-700);
+    font-size: 1rem;
+    font-weight: 500;
+}
+
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
