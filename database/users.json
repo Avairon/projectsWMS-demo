@@ -14,5 +14,14 @@
     "name": "rukovod",
     "role": "manager",
     "projects": []
+  },
+  {
+    "id": "2bea9b95",
+    "username": "cur",
+    "password": "scrypt:32768:8:1$m4s6DWuBZgjkoFWe$2978a48decbbaf71bd25609774b02e7d0b95fddd7f770b7198dde4adace91abc3737de7bff305189948f2fad61713be6af2898b0036821327a3695cf453976d3",
+    "name": "cur",
+    "role": "supervisor",
+    "token": "1F5387CC",
+    "projects": []
   }
 ]

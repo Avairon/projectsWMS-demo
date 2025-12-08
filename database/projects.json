@@ -26,5 +26,33 @@
     "supervisor_id": "b394c21e",
     "manager_id": "b394c21e",
     "team": []
+  },
+  {
+    "id": "bed216da",
+    "name": "asdasd",
+    "description": "asdasd",
+    "direction": "Цифровая среда",
+    "expected_result": "asdasd",
+    "start_date": "2025-12-12",
+    "end_date": "2025-12-12",
+    "last_activity": "08.12.2025",
+    "status": "в работе",
+    "supervisor_id": "b394c21e",
+    "manager_id": "b394c21e",
+    "team": []
+  },
+  {
+    "id": "10131b31",
+    "name": "asdasd",
+    "description": "asdasdasd",
+    "direction": "Образовательные программы",
+    "expected_result": "asdasdasd",
+    "start_date": "2025-12-25",
+    "end_date": "2025-12-26",
+    "last_activity": "09.12.2025",
+    "status": "в работе",
+    "supervisor_id": "2bea9b95",
+    "manager_id": "b394c21e",
+    "team": []
   }
 ]
