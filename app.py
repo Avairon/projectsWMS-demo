@@ -650,6 +650,7 @@ def create_project():
     # Загружаем пользователей для выбора куратора, руководителя и команды
     users = load_data(app.config['USERS_DB'])
     managers = [u for u in users if u['role'] in ['admin', 'manager']]
+    curators = [u for u in users if u['role'] in ['admin', 'supervisor']]
     
     if request.method == 'POST':
         # Генерируем уникальный ID для проекта
@@ -680,7 +681,7 @@ def create_project():
         return redirect(url_for('project_detail', project_id=project_id))
     
     # Для GET запроса показываем форму создания проекта
-    return render_template('create_project.html', users=users, managers=managers)
+    return render_template('create_project.html', users=users, managers=managers, curators=curators)
 
 # Создание задачи
 @app.route('/project/<project_id>/create_task', methods=['GET', 'POST'])
