@@ -9,8 +9,6 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from config import Config
 from dateutil.parser import parse as parse_date
-from werkzeug.utils import secure_filename
-import re
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -20,17 +18,8 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
-# Конфигурация для загрузки файлов
-app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
-
 # Создание директории для базы данных, если её нет
 os.makedirs(app.config['DATABASE_PATH'], exist_ok=True)
-# Создание директории для загрузки файлов, если её нет
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-
-# Допустимые расширения файлов
-ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'doc', 'docx', 'xls', 'xlsx'}
 
 # Инициализация JSON файлов с данными, если их нет
 def init_database(force_recreate=False):
@@ -169,7 +158,7 @@ def can_access_project(project_id):
         return False
     
     # Проверяем, является ли пользователь руководителем или куратором проекта
-    if current_user.role in ['manager', 'curator'] and (project.get('manager_id', '') == current_user.id or project.get('supervisor_id', '') == current_user.id):
+    if current_user.role == 'manager' and (project.get('manager_id', '') == current_user.id or project.get('supervisor_id', '') == current_user.id):
         return True
     
     # Проверяем, входит ли пользователь в команду проекта
@@ -249,7 +238,6 @@ def get_available_roles():
     return [
         {'id': 'admin', 'name': 'Администратор'},
         {'id': 'manager', 'name': 'Руководитель проекта'},
-        {'id': 'curator', 'name': 'Куратор'},
         {'id': 'worker', 'name': 'Исполнитель'}
     ]
 
@@ -303,12 +291,6 @@ def mark_token_as_used(token_id):
     save_tokens(tokens)
 
 
-def allowed_file(filename):
-    """Проверка разрешенного расширения файла"""
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
 # Маршрут для генерации токенов
 @app.route('/generate_token', methods=['POST'])
 @login_required
@@ -322,7 +304,7 @@ def generate_token_route():
     project_id = request.form.get('project_id')
     
     # Проверяем, что роль допустима
-    if role not in ['admin', 'manager', 'curator', 'worker']:
+    if role not in ['admin', 'manager', 'worker']:
         flash('Недопустимая роль для токена')
         return redirect(url_for('dashboard'))
     
@@ -331,9 +313,9 @@ def generate_token_route():
         flash('Для исполнителя необходимо указать проект')
         return redirect(url_for('dashboard'))
     
-    # Если пользователь не администратор, он может создавать только токены для исполнителей и кураторов
-    if current_user.role == 'manager' and role not in ['worker', 'curator']:
-        flash('Руководитель может генерировать токены только для исполнителей и кураторов')
+    # Если пользователь не администратор, он может создавать только токены для исполнителей
+    if current_user.role == 'manager' and role != 'worker':
+        flash('Руководитель может генерировать токены только для исполнителей')
         return redirect(url_for('dashboard'))
     
     # Если пользователь - руководитель, проверяем, что он имеет доступ к проекту
@@ -691,115 +673,6 @@ def create_task(project_id):
     
     return render_template('create_task.html', project=project, users=eligible_users)
 
-
-# API для задач
-@app.route('/api/project/<project_id>/tasks', methods=['GET'])
-@login_required
-def api_get_tasks_by_project(project_id):
-    """Список задач по проекту"""
-    if not can_access_project(project_id):
-        return jsonify({'error': 'У вас нет доступа к этому проекту'}), 403
-    
-    tasks = load_data(app.config['TASKS_DB'])
-    project_tasks = [t for t in tasks if t.get('project_id') == project_id]
-    
-    # Добавляем информацию о пользователях к задачам
-    users = load_data(app.config['USERS_DB'])
-    user_map = {u['id']: u for u in users}
-    
-    for task in project_tasks:
-        assignee = user_map.get(task.get('assignee_id'))
-        if assignee:
-            task['assignee_name'] = assignee.get('name', assignee.get('username', ''))
-        else:
-            task['assignee_name'] = 'Не назначен'
-    
-    return jsonify(project_tasks)
-
-
-@app.route('/api/project/<project_id>/tasks', methods=['POST'])
-@login_required
-def api_create_task(project_id):
-    """Создание задачи"""
-    # Проверяем доступ к проекту
-    if not can_access_project(project_id):
-        return jsonify({'error': 'У вас нет доступа к этому проекту'}), 403
-    
-    # Только менеджеры, кураторы и администраторы могут создавать задачи
-    if current_user.role not in ['admin', 'manager', 'curator']:
-        return jsonify({'error': 'У вас нет прав на создание задач'}), 403
-    
-    projects = load_data(app.config['PROJECTS_DB'])
-    users = load_data(app.config['USERS_DB'])
-    
-    project = next((p for p in projects if p.get('id') == project_id), None)
-    if not project:
-        return jsonify({'error': 'Проект не найден'}), 404
-    
-    # Получаем данные из запроса
-    title = request.form.get('title', '').strip()
-    description = request.form.get('description', '').strip()
-    assignee_id = request.form.get('assignee_id')
-    deadline = request.form.get('deadline')
-    
-    if not title:
-        return jsonify({'error': 'Название задачи обязательно'}), 400
-    
-    # Проверяем, что исполнитель является участником проекта
-    if assignee_id:
-        user = next((u for u in users if u['id'] == assignee_id), None)
-        if not user:
-            return jsonify({'error': 'Исполнитель не найден'}), 404
-        
-        if assignee_id not in project.get('team', []) and assignee_id != project.get('manager_id') and assignee_id != project.get('supervisor_id'):
-            return jsonify({'error': 'Исполнитель не является участником проекта'}), 400
-    else:
-        # Если исполнитель не указан, назначаем текущего пользователя (если он участник проекта)
-        if current_user.id in project.get('team', []) or current_user.id == project.get('manager_id') or current_user.id == project.get('supervisor_id'):
-            assignee_id = current_user.id
-        else:
-            return jsonify({'error': 'Необходимо указать исполнителя'}), 400
-    
-    # Проверка дат: deadline не может быть раньше текущей даты
-    if deadline:
-        try:
-            deadline_dt = parse_date(deadline)
-            current_dt = datetime.now()
-            if deadline_dt < current_dt:
-                return jsonify({'error': 'Дата дедлайна не может быть в прошлом'}), 400
-        except:
-            return jsonify({'error': 'Некорректный формат даты'}), 400
-    
-    # Создаем задачу
-    task = {
-        "id": str(uuid.uuid4())[:8],
-        "project_id": project_id,
-        "title": title,
-        "description": description,
-        "assignee_id": assignee_id,
-        "created_by": current_user.id,
-        "created_at": datetime.now().strftime("%d.%m.%Y"),
-        "deadline": deadline or "",
-        "status": "активна",
-        "completion_date": ""
-    }
-    
-    # Сохраняем задачу
-    tasks = load_data(app.config['TASKS_DB'])
-    tasks.append(task)
-    save_data(app.config['TASKS_DB'], tasks)
-    
-    # Обновляем дату последней активности проекта
-    project['last_activity'] = datetime.now().strftime("%d.%m.%Y")
-    for i, p in enumerate(projects):
-        if p.get('id') == project_id:
-            projects[i] = project
-            break
-    save_data(app.config['PROJECTS_DB'], projects)
-    
-    return jsonify({'success': True, 'message': 'Задача успешно создана', 'task': task})
-
-
 # Обновление задачи
 @app.route('/task/<task_id>/update_status', methods=['POST'])
 @login_required
@@ -853,171 +726,6 @@ def update_task_status(task_id):
     flash('Статус задачи успешно обновлен')
     return redirect(request.referrer or url_for('dashboard'))
 
-
-# Обновление задачи (включая изменение ответственного)
-@app.route('/task/<task_id>/update', methods=['POST'])
-@login_required
-def update_task(task_id):
-    """Обновление задачи (включая изменение ответственного)"""
-    # Проверяем права доступа к задаче
-    if not can_access_task(task_id):
-        return jsonify({'error': 'У вас нет доступа к этой задаче'}), 403
-    
-    tasks = load_data(app.config['TASKS_DB'])
-    task = next((t for t in tasks if t.get('id') == task_id), None)
-    
-    if not task:
-        return jsonify({'error': 'Задача не найдена'}), 404
-    
-    # Только администраторы, менеджеры и кураторы могут редактировать задачи
-    project_id = task.get('project_id')
-    if current_user.role not in ['admin', 'manager', 'curator']:
-        return jsonify({'error': 'У вас нет прав на редактирование задачи'}), 403
-    
-    # Проверяем доступ к проекту
-    if not can_access_project(project_id):
-        return jsonify({'error': 'У вас нет доступа к проекту задачи'}), 403
-    
-    # Получаем новые значения
-    new_assignee_id = request.form.get('assignee_id')
-    new_title = request.form.get('title')
-    new_description = request.form.get('description')
-    new_deadline = request.form.get('deadline')
-    
-    # Проверка дат: start_date <= end_date (в задаче есть created_at как начало, deadline как конец)
-    # Но в текущей структуре задачи нет отдельного поля start_date, есть только created_at
-    # Валидируем, что deadline не раньше даты создания задачи
-    if new_deadline:
-        try:
-            deadline_dt = parse_date(new_deadline)
-            created_dt = parse_date(task.get('created_at', datetime.now().strftime("%d.%m.%Y")))
-            if deadline_dt < created_dt:
-                return jsonify({'error': 'Дата дедлайна не может быть раньше даты создания задачи'}), 400
-        except:
-            return jsonify({'error': 'Некорректный формат даты'}), 400
-    
-    # Обновляем поля задачи
-    if new_assignee_id:
-        # Проверяем, что новый ответственный существует и является участником проекта
-        users = load_data(app.config['USERS_DB'])
-        user = next((u for u in users if u['id'] == new_assignee_id), None)
-        if not user:
-            return jsonify({'error': 'Назначаемый пользователь не найден'}), 404
-        
-        # Проверяем, что пользователь является участником проекта
-        projects = load_data(app.config['PROJECTS_DB'])
-        project = next((p for p in projects if p['id'] == project_id), None)
-        if project and new_assignee_id not in project.get('team', []) and new_assignee_id != project.get('manager_id') and new_assignee_id != project.get('supervisor_id'):
-            return jsonify({'error': 'Назначаемый пользователь не является участником проекта'}), 400
-        
-        task['assignee_id'] = new_assignee_id
-    
-    if new_title:
-        task['title'] = new_title.strip()
-    
-    if new_description:
-        task['description'] = new_description.strip()
-    
-    if new_deadline:
-        task['deadline'] = new_deadline
-    
-    # Сохраняем изменения
-    for i, t in enumerate(tasks):
-        if t.get('id') == task_id:
-            tasks[i] = task
-            break
-    
-    save_data(app.config['TASKS_DB'], tasks)
-    
-    # Обновляем дату последней активности проекта
-    if project:
-        project['last_activity'] = datetime.now().strftime("%d.%m.%Y")
-        for i, p in enumerate(projects):
-            if p.get('id') == project_id:
-                projects[i] = project
-                break
-        save_data(app.config['PROJECTS_DB'], projects)
-    
-    return jsonify({'success': True, 'message': 'Задача успешно обновлена'})
-
-
-# Загрузка файла к задаче
-@app.route('/task/<task_id>/upload_file', methods=['POST'])
-@login_required
-def upload_task_file(task_id):
-    """Загрузка файла к задаче (до закрытия)"""
-    # Проверяем права доступа к задаче
-    if not can_access_task(task_id):
-        return jsonify({'error': 'У вас нет доступа к этой задаче'}), 403
-    
-    tasks = load_data(app.config['TASKS_DB'])
-    task = next((t for t in tasks if t.get('id') == task_id), None)
-    
-    if not task:
-        return jsonify({'error': 'Задача не найдена'}), 404
-    
-    # Проверяем, что задача еще не закрыта (статус не "завершена")
-    if task.get('status') == 'завершена':
-        return jsonify({'error': 'Нельзя загружать файлы к завершенной задаче'}), 400
-    
-    # Проверяем, что пользователь имеет право (исполнитель задачи, менеджер, куратор или админ)
-    project_id = task.get('project_id')
-    if current_user.role not in ['admin'] and current_user.id != task.get('assignee_id'):
-        if not can_access_project(project_id) and current_user.role not in ['manager', 'curator']:
-            return jsonify({'error': 'У вас нет прав для загрузки файлов к этой задаче'}), 403
-    
-    # Проверяем, что файл был загружен
-    if 'file' not in request.files:
-        return jsonify({'error': 'Файл не был загружен'}), 400
-    
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({'error': 'Файл не был выбран'}), 400
-    
-    if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        # Добавляем уникальный префикс к имени файла, чтобы избежать конфликта
-        unique_filename = f"{task_id}_{uuid.uuid4().hex[:8]}_{filename}"
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
-        
-        file.save(filepath)
-        
-        # Добавляем информацию о файле к задаче
-        file_info = {
-            'filename': filename,
-            'unique_filename': unique_filename,
-            'uploaded_by': current_user.id,
-            'uploaded_at': datetime.now().strftime("%d.%m.%Y %H:%M:%S"),
-            'size': os.path.getsize(filepath)
-        }
-        
-        # Загружаем задачи снова на случай, если были изменения
-        tasks = load_data(app.config['TASKS_DB'])
-        task = next((t for t in tasks if t.get('id') == task_id), None)
-        
-        if not task:
-            # Удаляем загруженный файл, если задача не найдена
-            os.remove(filepath)
-            return jsonify({'error': 'Задача не найдена'}), 404
-        
-        # Добавляем файл в список файлов задачи
-        if 'files' not in task:
-            task['files'] = []
-        task['files'].append(file_info)
-        
-        # Сохраняем изменения
-        for i, t in enumerate(tasks):
-            if t.get('id') == task_id:
-                tasks[i] = task
-                break
-        
-        save_data(app.config['TASKS_DB'], tasks)
-        
-        return jsonify({'success': True, 'message': 'Файл успешно загружен', 'file': file_info})
-    else:
-        return jsonify({'error': 'Недопустимый тип файла'}), 400
-
-
 # Редактирование проекта
 @app.route('/project/<project_id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -1068,99 +776,6 @@ def edit_project(project_id):
         return redirect(url_for('project_detail', project_id=project_id))
     
     return render_template('edit_project.html', project=project, users=users, managers=managers)
-
-
-# API для управления командой проекта
-@app.route('/project/<project_id>/add_member', methods=['POST'])
-@login_required
-def add_project_member(project_id):
-    """Назначить участника проекта (доступно куратору/менеджеру)"""
-    if not can_access_project(project_id):
-        return jsonify({'error': 'У вас нет доступа к этому проекту'}), 403
-    
-    # Проверяем права - только администратор, менеджер или куратор могут добавлять участников
-    projects = load_data(app.config['PROJECTS_DB'])
-    project = next((p for p in projects if p['id'] == project_id), None)
-    if not project:
-        return jsonify({'error': 'Проект не найден'}), 404
-    
-    if current_user.role not in ['admin', 'manager', 'curator']:
-        return jsonify({'error': 'У вас нет прав для добавления участников в проект'}), 403
-    
-    # Дополнительная проверка: куратор должен быть куратором этого проекта
-    if current_user.role == 'curator' and project.get('supervisor_id') != current_user.id:
-        return jsonify({'error': 'Вы не являетесь куратором этого проекта'}), 403
-    
-    user_id = request.form.get('user_id')
-    if not user_id:
-        return jsonify({'error': 'Не указан ID пользователя'}), 400
-    
-    # Проверяем, что пользователь существует
-    users = load_data(app.config['USERS_DB'])
-    user = next((u for u in users if u['id'] == user_id), None)
-    if not user:
-        return jsonify({'error': 'Пользователь не найден'}), 404
-    
-    # Добавляем пользователя в команду проекта, если его там еще нет
-    team = project.get('team', [])
-    if user_id not in team:
-        team.append(user_id)
-        project['team'] = team
-        
-        # Сохраняем изменения
-        for i, p in enumerate(projects):
-            if p['id'] == project_id:
-                projects[i] = project
-                break
-        save_data(app.config['PROJECTS_DB'], projects)
-        
-        return jsonify({'success': True, 'message': 'Участник успешно добавлен в проект'})
-    else:
-        return jsonify({'error': 'Пользователь уже является участником проекта'}), 400
-
-
-@app.route('/project/<project_id>/remove_member/<user_id>', methods=['POST'])
-@login_required
-def remove_project_member(project_id, user_id):
-    """Удалить участника проекта (доступно куратору/менеджеру)"""
-    if not can_access_project(project_id):
-        return jsonify({'error': 'У вас нет доступа к этому проекту'}), 403
-    
-    # Проверяем права - только администратор, менеджер или куратор могут удалять участников
-    projects = load_data(app.config['PROJECTS_DB'])
-    project = next((p for p in projects if p['id'] == project_id), None)
-    if not project:
-        return jsonify({'error': 'Проект не найден'}), 404
-    
-    if current_user.role not in ['admin', 'manager', 'curator']:
-        return jsonify({'error': 'У вас нет прав для удаления участников из проекта'}), 403
-    
-    # Дополнительная проверка: куратор должен быть куратором этого проекта
-    if current_user.role == 'curator' and project.get('supervisor_id') != current_user.id:
-        return jsonify({'error': 'Вы не являетесь куратором этого проекта'}), 403
-    
-    # Проверяем, что пользователь существует
-    users = load_data(app.config['USERS_DB'])
-    user = next((u for u in users if u['id'] == user_id), None)
-    if not user:
-        return jsonify({'error': 'Пользователь не найден'}), 404
-    
-    # Удаляем пользователя из команды проекта
-    team = project.get('team', [])
-    if user_id in team:
-        team.remove(user_id)
-        project['team'] = team
-        
-        # Сохраняем изменения
-        for i, p in enumerate(projects):
-            if p['id'] == project_id:
-                projects[i] = project
-                break
-        save_data(app.config['PROJECTS_DB'], projects)
-        
-        return jsonify({'success': True, 'message': 'Участник успешно удален из проекта'})
-    else:
-        return jsonify({'error': 'Пользователь не является участником проекта'}), 400
 
 
 if __name__ == '__main__':
