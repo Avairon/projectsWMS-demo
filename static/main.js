@@ -616,3 +616,393 @@ document.addEventListener('keydown', function (e) {
         closeChangeAssigneeModal();
     }
 });
+
+// Дополнительные JS-функции для улучшения функциональности
+
+// Функция для обновления прогресса проекта
+function updateProjectProgress(projectId) {
+    // TODO: Реализовать обновление прогресса проекта через API
+    console.log('Обновление прогресса проекта:', projectId);
+}
+
+// Функция для сортировки задач
+function sortTasks(sortBy, order = 'asc') {
+    const tasksContainer = document.querySelector('.tasks-container');
+    if (!tasksContainer) return;
+
+    const tasks = Array.from(tasksContainer.querySelectorAll('.task-item'));
+    
+    tasks.sort((a, b) => {
+        let valA, valB;
+        
+        switch(sortBy) {
+            case 'date':
+                valA = new Date(a.dataset.deadline);
+                valB = new Date(b.dataset.deadline);
+                break;
+            case 'priority':
+                valA = parseInt(a.dataset.priority) || 0;
+                valB = parseInt(b.dataset.priority) || 0;
+                break;
+            case 'status':
+                valA = a.dataset.status || '';
+                valB = b.dataset.status || '';
+                break;
+            default:
+                valA = a.querySelector('.task-title')?.textContent || '';
+                valB = b.querySelector('.task-title')?.textContent || '';
+        }
+        
+        if (valA < valB) return order === 'asc' ? -1 : 1;
+        if (valA > valB) return order === 'asc' ? 1 : -1;
+        return 0;
+    });
+    
+    tasks.forEach(task => tasksContainer.appendChild(task));
+}
+
+// Функция для фильтрации задач
+function filterTasks(status) {
+    const tasks = document.querySelectorAll('.task-item');
+    
+    tasks.forEach(task => {
+        if (status === 'all' || task.dataset.status === status) {
+            task.style.display = 'block';
+        } else {
+            task.style.display = 'none';
+        }
+    });
+}
+
+// Функция для поиска задач
+function searchTasks(query) {
+    const tasks = document.querySelectorAll('.task-item');
+    const searchTerm = query.toLowerCase();
+    
+    tasks.forEach(task => {
+        const title = task.querySelector('.task-title')?.textContent.toLowerCase() || '';
+        const description = task.querySelector('.task-description')?.textContent.toLowerCase() || '';
+        
+        if (title.includes(searchTerm) || description.includes(searchTerm)) {
+            task.style.display = 'block';
+        } else {
+            task.style.display = 'none';
+        }
+    });
+}
+
+// Функция для обновления статуса задачи через API
+function updateTaskStatus(taskId, newStatus) {
+    fetch(`/task/${taskId}/update_status`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `status=${encodeURIComponent(newStatus)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Статус задачи обновлен', 'success');
+            // Перезагружаем страницу или обновляем элементы интерфейса
+            location.reload();
+        } else {
+            showNotification('Ошибка при обновлении статуса', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Ошибка при обновлении статуса', 'error');
+    });
+}
+
+// Функция для добавления задачи
+function addTaskToProject(projectId) {
+    const title = document.getElementById('new-task-title')?.value;
+    const description = document.getElementById('new-task-description')?.value;
+    const assignee = document.getElementById('new-task-assignee')?.value;
+    const deadline = document.getElementById('new-task-deadline')?.value;
+    
+    if (!title) {
+        showNotification('Укажите название задачи', 'error');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('description', description);
+    formData.append('assignee_id', assignee);
+    formData.append('deadline', deadline);
+    
+    fetch(`/api/project/${projectId}/tasks`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Задача добавлена', 'success');
+            // Очищаем форму
+            document.getElementById('new-task-title').value = '';
+            document.getElementById('new-task-description').value = '';
+            // Перезагружаем страницу
+            location.reload();
+        } else {
+            showNotification(data.message || 'Ошибка при добавлении задачи', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Ошибка при добавлении задачи', 'error');
+    });
+}
+
+// Функция для инициализации drag and drop для задач
+function initDragAndDropTasks() {
+    const taskItems = document.querySelectorAll('.task-item');
+    
+    taskItems.forEach(task => {
+        task.draggable = true;
+        
+        task.addEventListener('dragstart', function(e) {
+            e.dataTransfer.setData('text/plain', task.dataset.taskId);
+            task.classList.add('dragging');
+        });
+        
+        task.addEventListener('dragend', function() {
+            task.classList.remove('dragging');
+        });
+    });
+    
+    // Обработчики для drop зон
+    const dropZones = document.querySelectorAll('.status-column');
+    dropZones.forEach(zone => {
+        zone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            zone.classList.add('drag-over');
+        });
+        
+        zone.addEventListener('dragleave', function() {
+            zone.classList.remove('drag-over');
+        });
+        
+        zone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            zone.classList.remove('drag-over');
+            
+            const taskId = e.dataTransfer.getData('text/plain');
+            const newStatus = zone.dataset.status;
+            
+            if (taskId && newStatus) {
+                updateTaskStatus(taskId, newStatus);
+            }
+        });
+    });
+}
+
+// Функция для экспорта данных
+function exportProjectData(format) {
+    const projectId = document.querySelector('[data-project-id]')?.dataset.projectId;
+    if (!projectId) return;
+    
+    let url;
+    switch(format) {
+        case 'pdf':
+            url = `/project/${projectId}/export/pdf`;
+            break;
+        case 'excel':
+            url = `/project/${projectId}/export/excel`;
+            break;
+        case 'csv':
+            url = `/project/${projectId}/export/csv`;
+            break;
+        default:
+            return;
+    }
+    
+    // Создаем временный элемент для скачивания
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `project_${projectId}_export.${format}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// Функция для инициализации календаря
+function initCalendar() {
+    const calendarEl = document.getElementById('calendar');
+    if (!calendarEl) return;
+    
+    // Простая реализация календаря
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    
+    // TODO: Реализовать полнофункциональный календарь с задачами
+    console.log('Инициализация календаря', currentYear, currentMonth + 1);
+}
+
+// Функция для обновления статистики в реальном времени
+function updateRealTimeStats() {
+    // TODO: Реализовать WebSocket или периодические запросы для обновления статистики
+    console.log('Обновление статистики в реальном времени');
+}
+
+// Инициализация дополнительных функций при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    // Инициализируем drag and drop для задач
+    initDragAndDropTasks();
+    
+    // Инициализируем календарь если он есть на странице
+    initCalendar();
+    
+    // Добавляем обработчики для фильтров
+    const statusFilter = document.getElementById('status-filter');
+    if (statusFilter) {
+        statusFilter.addEventListener('change', function() {
+            filterTasks(this.value);
+        });
+    }
+    
+    // Добавляем обработчик для поиска
+    const searchInput = document.getElementById('task-search');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            searchTasks(this.value);
+        });
+    }
+    
+    // Добавляем обработчики для сортировки
+    const sortSelect = document.getElementById('sort-tasks');
+    if (sortSelect) {
+        sortSelect.addEventListener('change', function() {
+            const [sortBy, order] = this.value.split('-');
+            sortTasks(sortBy, order);
+        });
+    }
+});
+
+// Функция для загрузки данных проекта
+async function loadProjectData(projectId) {
+    try {
+        const response = await fetch(`/api/project/${projectId}`);
+        if (!response.ok) throw new Error('Network response was not ok');
+        
+        const projectData = await response.json();
+        return projectData;
+    } catch (error) {
+        console.error('Ошибка загрузки данных проекта:', error);
+        return null;
+    }
+}
+
+// Функция для загрузки задач проекта
+async function loadProjectTasks(projectId) {
+    try {
+        const response = await fetch(`/api/project/${projectId}/tasks`);
+        if (!response.ok) throw new Error('Network response was not ok');
+        
+        const tasks = await response.json();
+        return tasks;
+    } catch (error) {
+        console.error('Ошибка загрузки задач проекта:', error);
+        return [];
+    }
+}
+
+// Функция для обновления представления задач
+function updateTasksView(tasks) {
+    const container = document.querySelector('.tasks-container');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    tasks.forEach(task => {
+        const taskElement = document.createElement('div');
+        taskElement.className = 'task-item';
+        taskElement.dataset.taskId = task.id;
+        taskElement.dataset.status = task.status;
+        taskElement.dataset.deadline = task.deadline;
+        
+        taskElement.innerHTML = `
+            <div class="task-header">
+                <h4 class="task-title">${task.title || 'Без названия'}</h4>
+                <span class="status-badge ${getStatusClass(task.status)}">${task.status}</span>
+            </div>
+            <div class="task-body">
+                <p class="task-description">${task.description || ''}</p>
+                <div class="task-meta">
+                    <span class="assignee">${task.assignee_name || 'Не назначен'}</span>
+                    <span class="deadline">${task.deadline || 'Без дедлайна'}</span>
+                </div>
+            </div>
+        `;
+        
+        container.appendChild(taskElement);
+    });
+}
+
+// Вспомогательная функция для получения класса статуса
+function getStatusClass(status) {
+    switch(status) {
+        case 'активна': return 'status-active';
+        case 'завершена': return 'status-completed';
+        case 'отложена': return 'status-paused';
+        default: return 'status-default';
+    }
+}
+
+// Функция для валидации форм
+function validateForm(formId) {
+    const form = document.getElementById(formId);
+    if (!form) return false;
+    
+    let isValid = true;
+    const requiredFields = form.querySelectorAll('[required]');
+    
+    requiredFields.forEach(field => {
+        if (!field.value.trim()) {
+            field.classList.add('error');
+            isValid = false;
+        } else {
+            field.classList.remove('error');
+        }
+    });
+    
+    return isValid;
+}
+
+// Функция для показа прелоадера
+function showLoader(show = true) {
+    const loader = document.querySelector('.loader') || document.querySelector('.spinner');
+    if (loader) {
+        loader.style.display = show ? 'block' : 'none';
+    }
+}
+
+// Функция для форматирования даты
+function formatDate(dateString) {
+    if (!dateString) return 'Не указана';
+    
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString; // Если формат уже корректный
+    
+    return date.toLocaleDateString('ru-RU');
+}
+
+// Функция для получения относительного времени
+function getTimeAgo(dateString) {
+    if (!dateString) return 'Не указано';
+    
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'сегодня';
+    if (diffDays === 1) return 'вчера';
+    if (diffDays < 7) return `${diffDays} д. назад`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} нед. назад`;
+    return `${Math.floor(diffDays / 30)} мес. назад`;
+}
