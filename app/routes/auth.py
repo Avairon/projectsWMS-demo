@@ -62,7 +62,7 @@ def register():
                         team.append(new_user['id'])
                         project['team'] = team
                     break
-            save_data(app_config.PROJECTS_DB', projects)
+            save_data(app_config.PROJECTS_DB, projects)
         
         # Отмечаем токен как использованный
         mark_token_as_used(token)
@@ -190,7 +190,7 @@ def edit_user(user_id):
                 users[i] = user
                 break
         
-        save_data(app_config.USERS_DB', users)
+        save_data(app_config.USERS_DB, users)
         flash('Пользователь успешно обновлен')
         return redirect(url_for('auth.admin_users'))
     
@@ -219,7 +219,7 @@ def delete_user(user_id):
     
     # Удаляем пользователя
     users = [u for u in users if u['id'] != user_id]
-    save_data(app_config.USERS_DB', users)
+    save_data(app_config.USERS_DB, users)
     
     flash('Пользователь успешно удален')
     return redirect(url_for('auth.admin_users'))
