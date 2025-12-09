@@ -6,7 +6,9 @@ import uuid
 from datetime import datetime
 
 app_config = Config()
-dashboard_bp = Blueprint('dashboard', __name__)
+dashboard_bp = Blueprint('dashboard', __name__) 
+# FIX ROUTES
+
 
 # Главная страница - редирект на dashboard
 @dashboard_bp.route('/')
