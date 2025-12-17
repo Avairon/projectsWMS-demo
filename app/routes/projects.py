@@ -67,7 +67,7 @@ def create_project():
             "expected_result": request.form['expected_result'].strip(),
             "start_date": request.form['start_date'],
             "end_date": request.form['end_date'],
-            "last_activity": datetime.now().strftime("%d/%m/%Y"),
+            "last_activity": datetime.now().strftime("%d.%m.%Y"),
             "status": request.form.get('status', 'в работе'),
             "supervisor_id": request.form['supervisor_id'],
             "manager_id": request.form['manager_id'],
@@ -116,7 +116,7 @@ def edit_project(project_id):
         project['supervisor_id'] = request.form.get('supervisor_id', None)
         project['manager_id'] = request.form.get('manager_id', None)
         project['team'] = request.form.getlist('team_members')
-        project['last_activity'] = datetime.now().strftime("%d/%m/%Y")
+        project['last_activity'] = datetime.now().strftime("%d.%m.%Y")
 
         for i, p in enumerate(projects):
             if p['id'] == project_id:
