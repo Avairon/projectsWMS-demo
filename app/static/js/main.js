@@ -433,14 +433,15 @@ function openTaskModal(taskId) {
                         if (executorDir && uniqueFilename) {
                             fileUrl = `/uploads/${executorDir}/${uniqueFilename}`;
                         } else if (fileData.path) {
-                            fileUrl = `/uploads/${fileData.path}`;
+                            // Remove leading slash if present to avoid double slashes
+                            const cleanPath = fileData.path.startsWith('/') ? fileData.path.substring(1) : fileData.path;
+                            fileUrl = `/uploads/${cleanPath}`;
                         }
                         
                         fileHtml = `
                             <div class="report-file">
                                 <strong>Прикрепленный файл:</strong>
                                 <div class="file-actions">
-                                    <a href="${fileUrl}" target="_blank" class="file-action-btn view-btn">Просмотр</a>
                                     <a href="${fileUrl}" download class="file-action-btn download-btn">Скачать</a>
                                 </div>
                                 <small>${fileName} (${fileSize || fileData.size || 'N/A'} байт)</small>

@@ -1485,15 +1485,7 @@ small {
     border-color: var(--primary-dark);
 }
 
-.view-btn {
-    border-color: var(--success-color);
-    color: var(--success-color);
-}
 
-.view-btn:hover {
-    background-color: var(--success-color);
-    color: var(--white);
-}
 
 .download-btn {
     border-color: var(--warning-color);
