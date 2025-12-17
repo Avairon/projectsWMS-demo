@@ -1458,3 +1458,55 @@ small {
         max-height: 80vh;
     }
 }
+
+/* File action buttons in reports */
+.file-actions {
+    display: flex;
+    gap: 10px;
+    margin: 8px 0;
+}
+
+.file-action-btn {
+    display: inline-block;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    text-decoration: none;
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+    border: 1px solid var(--gray-300);
+    background-color: var(--white);
+    color: var(--primary-color);
+}
+
+.file-action-btn:hover {
+    background-color: var(--primary-color);
+    color: var(--white);
+    border-color: var(--primary-dark);
+}
+
+.view-btn {
+    border-color: var(--success-color);
+    color: var(--success-color);
+}
+
+.view-btn:hover {
+    background-color: var(--success-color);
+    color: var(--white);
+}
+
+.download-btn {
+    border-color: var(--warning-color);
+    color: var(--warning-color);
+}
+
+.download-btn:hover {
+    background-color: var(--warning-color);
+    color: var(--white);
+}
+
+.report-file small {
+    display: block;
+    margin-top: 5px;
+    color: var(--gray-600);
+}

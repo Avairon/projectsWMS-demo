@@ -82,7 +82,7 @@
             {% for report in task.reports|reverse %}
             <div class="report-item">
                 <div class="report-header">
-                    <strong>Отчет от {{ report.reported_at }}</strong>
+                    <small>{{ report.reported_at }}</small>
                 </div>
                 <div class="report-content">
                     {% if report.comment %}
@@ -90,9 +90,12 @@
                     {% endif %}
                     {% if report.file %}
                     <div class="report-file">
-                        <strong>Файл:</strong> 
-                        <a href="/uploads/{{ report.file.executor_dir }}/{{ report.file.unique_filename }}" target="_blank">{{ report.file.filename }}</a>
-                        <small>({{ report.file.size }} байт)</small>
+                        <strong>Прикрепленный файл:</strong>
+                        <div class="file-actions">
+                            <a href="/uploads/{{ report.file.executor_dir }}/{{ report.file.unique_filename }}" target="_blank" class="file-action-btn view-btn">Просмотр</a>
+                            <a href="/uploads/{{ report.file.executor_dir }}/{{ report.file.unique_filename }}" download class="file-action-btn download-btn">Скачать</a>
+                        </div>
+                        <small>{{ report.file.filename }} ({{ report.file.size }} байт)</small>
                     </div>
                     {% endif %}
                 </div>
