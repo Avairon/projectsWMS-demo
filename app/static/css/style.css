@@ -1466,25 +1466,6 @@ small {
     margin: 8px 0;
 }
 
-.file-action-btn {
-    display: inline-block;
-    padding: 6px 12px;
-    font-size: 12px;
-    font-weight: 500;
-    text-decoration: none;
-    border-radius: var(--border-radius);
-    transition: var(--transition);
-    border: 1px solid var(--gray-300);
-    background-color: var(--white);
-    color: var(--primary-color);
-}
-
-.file-action-btn:hover {
-    background-color: var(--primary-color);
-    color: var(--white);
-    border-color: var(--primary-dark);
-}
-
 
 
 .download-btn {

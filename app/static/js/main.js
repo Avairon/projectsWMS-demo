@@ -436,14 +436,24 @@ function openTaskModal(taskId) {
                             // Remove leading slash if present to avoid double slashes
                             const cleanPath = fileData.path.startsWith('/') ? fileData.path.substring(1) : fileData.path;
                             fileUrl = `/uploads/${cleanPath}`;
+                        } else {
+                            // Fallback: construct path from other available fields
+                            if (fileData.unique_filename) {
+                                if (fileData.executor_dir) {
+                                    fileUrl = `/uploads/${fileData.executor_dir}/${fileData.unique_filename}`;
+                                } else {
+                                    // If executor_dir is missing, try to extract it from the unique_filename or use root uploads
+                                    fileUrl = `/uploads/${fileData.unique_filename}`;
+                                }
+                            } else {
+                                // Last resort fallback
+                                fileUrl = '#';
+                            }
                         }
                         
                         fileHtml = `
                             <div class="report-file">
                                 <strong>Прикрепленный файл:</strong>
-                                <div class="file-actions">
-                                    <a href="${fileUrl}" download class="file-action-btn download-btn">Скачать</a>
-                                </div>
                                 <small>${fileName} (${fileSize || fileData.size || 'N/A'} байт)</small>
                             </div>
                         `;
