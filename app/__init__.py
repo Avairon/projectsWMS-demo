@@ -34,6 +34,10 @@ def create_app():
     app.register_blueprint(projects_bp)
     app.register_blueprint(tasks_bp)
 
+    # Register template utilities
+    from app.utils import format_file_size
+    app.jinja_env.globals.update(format_file_size=format_file_size)
+
     @login_manager.user_loader
     def load_user_callback(user_id):
         from app.models import load_user

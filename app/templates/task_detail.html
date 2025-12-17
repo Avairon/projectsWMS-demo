@@ -49,7 +49,10 @@
             {% for file in task.files %}
             <div class="file-item">
                 <span>{{ file.filename }}</span>
-                <small>{{ file.uploaded_at }}</small>
+                <div class="file-actions">
+                    <a href="/uploads/{{ file.executor_dir }}/{{ file.unique_filename }}" download class="file-action-btn download-btn">Скачать</a>
+                </div>
+                <small>{{ file.uploaded_at }} ({{ format_file_size(file.size) }})</small>
             </div>
             {% endfor %}
         </div>
@@ -92,10 +95,9 @@
                     <div class="report-file">
                         <strong>Прикрепленный файл:</strong>
                         <div class="file-actions">
-                            <a href="/uploads/{{ report.file.executor_dir }}/{{ report.file.unique_filename }}" target="_blank" class="file-action-btn view-btn">Просмотр</a>
                             <a href="/uploads/{{ report.file.executor_dir }}/{{ report.file.unique_filename }}" download class="file-action-btn download-btn">Скачать</a>
                         </div>
-                        <small>{{ report.file.filename }} ({{ report.file.size }} байт)</small>
+                        <small>{{ report.file.filename }} ({{ format_file_size(report.file.size) }})</small>
                     </div>
                     {% endif %}
                 </div>
@@ -118,17 +120,6 @@
 </div>
 
 <script>
-function downloadReportFile(executorDir, filename) {
-    // Create a temporary link and trigger download
-    const link = document.createElement('a');
-    link.href = `/uploads/${executorDir}/${filename}`;
-    link.target = '_blank';
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-
 // Handle form submission
 document.getElementById('reportForm').addEventListener('submit', async function(e) {
     e.preventDefault();
