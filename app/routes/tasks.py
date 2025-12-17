@@ -486,18 +486,18 @@ def task_detail(task_id):
     
     formatted_reports = []
     for report in task['reports']:
-        executor = next((u for u in users if u['id'] == report.get('executor_id')), None)
+        executor = next((u for u in users if u['id'] == report.get('reported_by')), None)
         executor_name = executor.get('name', executor.get('username', 'Неизвестный')) if executor else 'Неизвестный'
         
         # Format the date if it exists
-        report_date = report.get('timestamp', report.get('date', ''))
+        report_date = report.get('reported_at', '')
         if report_date:
             try:
                 from datetime import datetime
                 # Parse the date string and format it nicely
                 if isinstance(report_date, str):
                     # Try to parse the date in various formats
-                    for fmt in ('%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S'):
+                    for fmt in ('%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S', '%d.%m.%Y %H:%M:%S'):
                         try:
                             parsed_date = datetime.strptime(report_date, fmt)
                             report_date = parsed_date.strftime('%d.%m.%Y %H:%M')
@@ -510,8 +510,8 @@ def task_detail(task_id):
         formatted_report = {
             'id': report.get('id'),
             'comment': report.get('comment', ''),
-            'file_info': report.get('file_info'),
-            'executor_id': report.get('executor_id'),
+            'file': report.get('file'),
+            'reported_by': report.get('reported_by'),
             'executor_name': executor_name,
             'date': report_date
         }
@@ -585,18 +585,18 @@ def api_task_detail(task_id):
     
     formatted_reports = []
     for report in task['reports']:
-        executor = next((u for u in users if u['id'] == report.get('executor_id')), None)
+        executor = next((u for u in users if u['id'] == report.get('reported_by')), None)
         executor_name = executor.get('name', executor.get('username', 'Неизвестный')) if executor else 'Неизвестный'
         
         # Format the date if it exists
-        report_date = report.get('timestamp', report.get('date', ''))
+        report_date = report.get('reported_at', '')
         if report_date:
             try:
                 from datetime import datetime
                 # Parse the date string and format it nicely
                 if isinstance(report_date, str):
                     # Try to parse the date in various formats
-                    for fmt in ('%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S'):
+                    for fmt in ('%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S', '%d.%m.%Y %H:%M:%S'):
                         try:
                             parsed_date = datetime.strptime(report_date, fmt)
                             report_date = parsed_date.strftime('%d.%m.%Y %H:%M')
@@ -609,8 +609,8 @@ def api_task_detail(task_id):
         formatted_report = {
             'id': report.get('id'),
             'comment': report.get('comment', ''),
-            'file_info': report.get('file_info'),
-            'executor_id': report.get('executor_id'),
+            'file': report.get('file'),
+            'reported_by': report.get('reported_by'),
             'executor_name': executor_name,
             'date': report_date
         }

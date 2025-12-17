@@ -418,15 +418,32 @@ function openTaskModal(taskId) {
                 reportsList.innerHTML = '';
                 task.reports.forEach(report => {
                     let fileHtml = '';
-                    if (report.file_info) {
-                        const fileName = report.file_info.filename;
-                        const filePath = report.file_info.path;
-                        const fileUrl = `/uploads/${filePath}`;
+                    // Handle both possible field names for backward compatibility
+                    const fileData = report.file || report.file_info;
+                    if (fileData) {
+                        // Determine the correct field names based on the available data structure
+                        const fileName = fileData.filename;
+                        const executorDir = fileData.executor_dir;
+                        const uniqueFilename = fileData.unique_filename;
+                        const fileSize = fileData.size;
+                        
+                        // If we have executor_dir and unique_filename, use the new structure
+                        // Otherwise fall back to the old path structure
+                        let fileUrl;
+                        if (executorDir && uniqueFilename) {
+                            fileUrl = `/uploads/${executorDir}/${uniqueFilename}`;
+                        } else if (fileData.path) {
+                            fileUrl = `/uploads/${fileData.path}`;
+                        }
+                        
                         fileHtml = `
                             <div class="report-file">
-                                <a href="${fileUrl}" target="_blank" class="file-link">
-                                    📎 ${fileName}
-                                </a>
+                                <strong>Прикрепленный файл:</strong>
+                                <div class="file-actions">
+                                    <a href="${fileUrl}" target="_blank" class="file-action-btn view-btn">Просмотр</a>
+                                    <a href="${fileUrl}" download class="file-action-btn download-btn">Скачать</a>
+                                </div>
+                                <small>${fileName} (${fileSize || fileData.size || 'N/A'} байт)</small>
                             </div>
                         `;
                     }
