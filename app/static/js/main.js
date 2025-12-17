@@ -413,6 +413,37 @@ function openTaskModal(taskId) {
                 });
             }
             
+            const reportsList = modal.querySelector('.reports-list');
+            if (reportsList && task.reports) {
+                reportsList.innerHTML = '';
+                task.reports.forEach(report => {
+                    let fileHtml = '';
+                    if (report.file_info) {
+                        const fileName = report.file_info.filename;
+                        const filePath = report.file_info.path;
+                        const fileUrl = `/uploads/${filePath}`;
+                        fileHtml = `
+                            <div class="report-file">
+                                <a href="${fileUrl}" target="_blank" class="file-link">
+                                    📎 ${fileName}
+                                </a>
+                            </div>
+                        `;
+                    }
+                    
+                    reportsList.innerHTML += `
+                        <div class="report-item">
+                            <span class="report-comment">${report.comment || 'Без комментария'}</span>
+                            <span class="report-date">
+                                <span>${report.date}</span>
+                                <span>${report.executor_name}</span>
+                            </span>
+                            ${fileHtml}
+                        </div>
+                    `;
+                });
+            }
+            
             modal.classList.add('active');
         })
         .catch(error => {

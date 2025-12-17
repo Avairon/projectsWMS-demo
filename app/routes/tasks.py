@@ -480,9 +480,46 @@ def task_detail(task_id):
     assignee = next((u for u in users if u['id'] == task.get('assignee_id')), None) if task.get('assignee_id') else None
     creator = next((u for u in users if u['id'] == task.get('created_by')), None) if task.get('created_by') else None
 
-    # Ensure reports are included in the task
+    # Format reports with executor names and proper dates
     if 'reports' not in task:
         task['reports'] = []
+    
+    formatted_reports = []
+    for report in task['reports']:
+        executor = next((u for u in users if u['id'] == report.get('executor_id')), None)
+        executor_name = executor.get('name', executor.get('username', 'Неизвестный')) if executor else 'Неизвестный'
+        
+        # Format the date if it exists
+        report_date = report.get('timestamp', report.get('date', ''))
+        if report_date:
+            try:
+                from datetime import datetime
+                # Parse the date string and format it nicely
+                if isinstance(report_date, str):
+                    # Try to parse the date in various formats
+                    for fmt in ('%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S'):
+                        try:
+                            parsed_date = datetime.strptime(report_date, fmt)
+                            report_date = parsed_date.strftime('%d.%m.%Y %H:%M')
+                            break
+                        except ValueError:
+                            continue
+            except Exception:
+                pass  # Keep original date if parsing fails
+        
+        formatted_report = {
+            'id': report.get('id'),
+            'comment': report.get('comment', ''),
+            'file_info': report.get('file_info'),
+            'executor_id': report.get('executor_id'),
+            'executor_name': executor_name,
+            'date': report_date
+        }
+        formatted_reports.append(formatted_report)
+    
+    # Sort reports by date (most recent first)
+    formatted_reports.sort(key=lambda x: x['date'], reverse=True)
+    task['reports'] = formatted_reports
 
     return render_template('task_detail.html', task=task, assignee=assignee, creator=creator)
 
@@ -542,8 +579,45 @@ def api_task_detail(task_id):
     
     task['team_users'] = team_users
 
-    # Include reports if they exist
+    # Format reports with executor names and proper dates
     if 'reports' not in task:
         task['reports'] = []
+    
+    formatted_reports = []
+    for report in task['reports']:
+        executor = next((u for u in users if u['id'] == report.get('executor_id')), None)
+        executor_name = executor.get('name', executor.get('username', 'Неизвестный')) if executor else 'Неизвестный'
+        
+        # Format the date if it exists
+        report_date = report.get('timestamp', report.get('date', ''))
+        if report_date:
+            try:
+                from datetime import datetime
+                # Parse the date string and format it nicely
+                if isinstance(report_date, str):
+                    # Try to parse the date in various formats
+                    for fmt in ('%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S'):
+                        try:
+                            parsed_date = datetime.strptime(report_date, fmt)
+                            report_date = parsed_date.strftime('%d.%m.%Y %H:%M')
+                            break
+                        except ValueError:
+                            continue
+            except Exception:
+                pass  # Keep original date if parsing fails
+        
+        formatted_report = {
+            'id': report.get('id'),
+            'comment': report.get('comment', ''),
+            'file_info': report.get('file_info'),
+            'executor_id': report.get('executor_id'),
+            'executor_name': executor_name,
+            'date': report_date
+        }
+        formatted_reports.append(formatted_report)
+    
+    # Sort reports by date (most recent first)
+    formatted_reports.sort(key=lambda x: x['date'], reverse=True)
+    task['reports'] = formatted_reports
 
     return jsonify(task)

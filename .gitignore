@@ -1,1 +1,8 @@
-Nothing needs to be added to .gitignore since the changes only include source files (.py, .html) and no build artifacts, dependencies, or temporary files.
+```
+# Compiled Python files
+*.pyc
+__pycache__/
+
+# Logs
+*.log
+```

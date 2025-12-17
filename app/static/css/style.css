@@ -1104,6 +1104,49 @@ small {
     font-size: 0.75rem;
 }
 
+.task-reports {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--gray-200);
+}
+
+.task-reports h4 {
+    margin-bottom: 0.8rem;
+    color: var(--secondary-color);
+    font-size: 1rem;
+}
+
+.reports-list {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.report-item {
+    padding: 8px;
+    border-bottom: 1px solid var(--gray-100);
+    font-size: 0.85rem;
+}
+
+.report-item:last-child {
+    border-bottom: none;
+}
+
+.report-item .report-comment {
+    display: block;
+    margin-bottom: 4px;
+}
+
+.report-item .report-date {
+    color: var(--gray-500);
+    font-size: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+}
+
+.report-item .report-file {
+    margin-top: 4px;
+}
+
 .profile-page h2 {
     margin-bottom: 1.5rem;
     color: var(--secondary-color);
