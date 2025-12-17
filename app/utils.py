@@ -160,7 +160,7 @@ def generate_token(role, project_id=None):
         'id': str(uuid.uuid4()),
         'role': role,
         'project_id': project_id,
-        'created_at': datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+        'created_at': datetime.now().strftime("%d.%m.%Y %H:%M:%S"),
         'used': False
     }
     tokens = load_tokens()
@@ -197,7 +197,7 @@ def get_user_token(user_id, project_id=None):
         'id': str(uuid.uuid4()),
         'user_id': user_id,
         'project_id': project_id,
-        'created_at': datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+        'created_at': datetime.now().strftime("%d.%m.%Y %H:%M:%S"),
         'used': False
     }
     tokens.append(token)
@@ -214,7 +214,7 @@ def add_task_history(task, action, user_id, users):
     
     history_entry = {
         'action': action,
-        'date': datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+        'date': datetime.now().strftime("%d.%m.%Y %H:%M:%S"),
         'user_id': user_id,
         'user_name': user_name
     }
