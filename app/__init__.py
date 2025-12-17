@@ -78,4 +78,26 @@ def create_app():
         flash(f'Токен успешно сгенерирован: {token_id}', 'success')
         return redirect(url_for('auth.profile'))
 
+    @app.route('/uploads/<executor_dir>/<filename>')
+    def uploaded_file(executor_dir, filename):
+        from flask import send_from_directory
+        import os
+        from config import Config
+        
+        uploads_dir = os.path.join(Config.BASE_DIR, 'uploads')
+        executor_path = os.path.join(uploads_dir, executor_dir)
+        
+        # Security check: prevent directory traversal
+        if '..' in executor_dir or '..' in filename:
+            from flask import abort
+            return abort(404)
+        
+        # Check if the file exists
+        filepath = os.path.join(executor_path, filename)
+        if not os.path.exists(filepath):
+            from flask import abort
+            return abort(404)
+        
+        return send_from_directory(executor_path, filename, as_attachment=True)
+
     return app
