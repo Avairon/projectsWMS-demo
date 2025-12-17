@@ -315,8 +315,21 @@ def upload_task_file(task_id):
 
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
+        
+        # Get user info to create executor-specific directory
+        users = load_data(app_config.USERS_DB)
+        assignee = next((u for u in users if u['id'] == task.get('assignee_id')), None)
+        if not assignee:
+            return jsonify({'error': 'Исполнитель задачи не найден'}), 404
+        
+        # Create directory named after executor if it doesn't exist
+        executor_name = assignee.get('name', assignee.get('username', 'unknown'))
+        executor_safe_name = secure_filename(executor_name.replace(" ", "_"))
+        executor_dir = os.path.join(app_config.BASE_DIR, 'uploads', executor_safe_name)
+        os.makedirs(executor_dir, exist_ok=True)
+        
         unique_filename = f"{task_id}_{uuid.uuid4().hex[:8]}_{filename}"
-        filepath = os.path.join(app_config.BASE_DIR, 'uploads', unique_filename)
+        filepath = os.path.join(executor_dir, unique_filename)
 
         file.save(filepath)
 
@@ -325,7 +338,8 @@ def upload_task_file(task_id):
             'unique_filename': unique_filename,
             'uploaded_by': current_user.id,
             'uploaded_at': datetime.now().strftime("%d.%m.%Y %H:%M:%S"),
-            'size': os.path.getsize(filepath)
+            'size': os.path.getsize(filepath),
+            'executor_dir': executor_safe_name
         }
 
         tasks = load_data(app_config.TASKS_DB)
@@ -351,6 +365,103 @@ def upload_task_file(task_id):
         return jsonify({'error': 'Недопустимый тип файла'}), 400
 
 
+@tasks_bp.route('/task/<task_id>/report', methods=['POST'])
+@login_required
+def report_task(task_id):
+    """Route for executors to report on their tasks with comments and files"""
+    if not can_access_task(task_id):
+        return jsonify({'error': 'У вас нет доступа к этой задаче'}), 403
+
+    tasks = load_data(app_config.TASKS_DB)
+    task = next((t for t in tasks if t.get('id') == task_id), None)
+
+    if not task:
+        return jsonify({'error': 'Задача не найдена'}), 404
+
+    # Check if current user is the assignee of the task
+    if current_user.id != task.get('assignee_id') and current_user.role not in ['admin', 'manager', 'supervisor']:
+        return jsonify({'error': 'Только исполнитель задачи может отправить отчет'}), 403
+
+    comment = request.form.get('comment', '').strip()
+    
+    # Process file upload if present
+    file_info = None
+    if 'report_file' in request.files:
+        file = request.files['report_file']
+        if file and file.filename != '' and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            
+            # Get user info to create executor-specific directory
+            users = load_data(app_config.USERS_DB)
+            assignee = next((u for u in users if u['id'] == task.get('assignee_id')), None)
+            if not assignee:
+                return jsonify({'error': 'Исполнитель задачи не найден'}), 404
+            
+            # Create directory named after executor if it doesn't exist
+            executor_name = assignee.get('name', assignee.get('username', 'unknown'))
+            executor_safe_name = secure_filename(executor_name.replace(" ", "_"))
+            executor_dir = os.path.join(app_config.BASE_DIR, 'uploads', executor_safe_name)
+            os.makedirs(executor_dir, exist_ok=True)
+            
+            unique_filename = f"report_{task_id}_{uuid.uuid4().hex[:8]}_{filename}"
+            filepath = os.path.join(executor_dir, unique_filename)
+
+            file.save(filepath)
+
+            file_info = {
+                'filename': filename,
+                'unique_filename': unique_filename,
+                'uploaded_by': current_user.id,
+                'uploaded_at': datetime.now().strftime("%d.%m.%Y %H:%M:%S"),
+                'size': os.path.getsize(filepath),
+                'executor_dir': executor_safe_name
+            }
+    
+    # Load task again in case file was uploaded
+    tasks = load_data(app_config.TASKS_DB)
+    task = next((t for t in tasks if t.get('id') == task_id), None)
+    if not task:
+        # If file was uploaded, remove it
+        if file_info:
+            filepath = os.path.join(app_config.BASE_DIR, 'uploads', file_info['executor_dir'], file_info['unique_filename'])
+            if os.path.exists(filepath):
+                os.remove(filepath)
+        return jsonify({'error': 'Задача не найдена'}), 404
+
+    # Initialize reports array if not exists
+    if 'reports' not in task:
+        task['reports'] = []
+
+    # Create report entry
+    report_entry = {
+        'id': str(uuid.uuid4()),
+        'comment': comment,
+        'file': file_info,
+        'reported_by': current_user.id,
+        'reported_at': datetime.now().strftime("%d.%m.%Y %H:%M:%S")
+    }
+
+    task['reports'].append(report_entry)
+
+    # Update the task in the database
+    for i, t in enumerate(tasks):
+        if t.get('id') == task_id:
+            tasks[i] = task
+            break
+
+    save_data(app_config.TASKS_DB, tasks)
+
+    # Add to task history
+    users = load_data(app_config.USERS_DB)
+    add_task_history(task, f'Отчет: {comment[:50]}...' if len(comment) > 50 else f'Отчет: {comment}', current_user.id, users)
+
+    return jsonify({
+        'success': True, 
+        'message': 'Отчет успешно отправлен',
+        'report': report_entry
+    })
+
+
 @tasks_bp.route('/task/<task_id>')
 @login_required
 def task_detail(task_id):
@@ -368,6 +479,10 @@ def task_detail(task_id):
 
     assignee = next((u for u in users if u['id'] == task.get('assignee_id')), None) if task.get('assignee_id') else None
     creator = next((u for u in users if u['id'] == task.get('created_by')), None) if task.get('created_by') else None
+
+    # Ensure reports are included in the task
+    if 'reports' not in task:
+        task['reports'] = []
 
     return render_template('task_detail.html', task=task, assignee=assignee, creator=creator)
 
@@ -426,5 +541,9 @@ def api_task_detail(task_id):
         team_users = [{'id': u['id'], 'name': u['name']} for u in users if u['id'] in team_ids]
     
     task['team_users'] = team_users
+
+    # Include reports if they exist
+    if 'reports' not in task:
+        task['reports'] = []
 
     return jsonify(task)
