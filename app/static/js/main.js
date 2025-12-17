@@ -454,6 +454,9 @@ function openTaskModal(taskId) {
                         fileHtml = `
                             <div class="report-file">
                                 <strong>Прикрепленный файл:</strong>
+                                <div class="file-actions">
+                                    <a href="${fileUrl}" download class="file-action-btn download-btn">Скачать</a>
+                                </div>
                                 <small>${fileName} (${fileSize || fileData.size || 'N/A'} байт)</small>
                             </div>
                         `;
